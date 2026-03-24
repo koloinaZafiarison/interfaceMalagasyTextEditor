@@ -1,0 +1,274 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Malagasy Green Theme - Light Mode */
+  --background: oklch(0.99 0.002 145);
+  --foreground: oklch(0.15 0.02 145);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 145);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 145);
+  
+  /* Primary: Deep forest green */
+  --primary: oklch(0.40 0.12 145);
+  --primary-foreground: oklch(0.99 0.002 145);
+  
+  /* Secondary: Soft sage green */
+  --secondary: oklch(0.94 0.03 145);
+  --secondary-foreground: oklch(0.25 0.08 145);
+  
+  /* Muted: Light green-gray */
+  --muted: oklch(0.96 0.015 145);
+  --muted-foreground: oklch(0.50 0.04 145);
+  
+  /* Accent: Vibrant green */
+  --accent: oklch(0.55 0.15 145);
+  --accent-foreground: oklch(0.99 0.002 145);
+  
+  /* Destructive: Red for errors */
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.98 0.01 27);
+  
+  /* Borders and inputs */
+  --border: oklch(0.88 0.02 145);
+  --input: oklch(0.92 0.015 145);
+  --ring: oklch(0.50 0.12 145);
+  
+  /* Charts */
+  --chart-1: oklch(0.45 0.15 145);
+  --chart-2: oklch(0.55 0.12 160);
+  --chart-3: oklch(0.65 0.10 130);
+  --chart-4: oklch(0.75 0.08 120);
+  --chart-5: oklch(0.35 0.10 145);
+  
+  --radius: 0.5rem;
+  
+  /* Sidebar */
+  --sidebar: oklch(0.97 0.015 145);
+  --sidebar-foreground: oklch(0.15 0.02 145);
+  --sidebar-primary: oklch(0.40 0.12 145);
+  --sidebar-primary-foreground: oklch(0.99 0.002 145);
+  --sidebar-accent: oklch(0.92 0.03 145);
+  --sidebar-accent-foreground: oklch(0.25 0.08 145);
+  --sidebar-border: oklch(0.88 0.02 145);
+  --sidebar-ring: oklch(0.50 0.12 145);
+  
+  /* Editor-specific */
+  --editor-bg: oklch(0.995 0.001 145);
+  --editor-selection: oklch(0.85 0.08 145);
+  --ghost-text: oklch(0.70 0.03 145);
+  --wavy-error: oklch(0.55 0.22 27);
+}
+
+.dark {
+  /* Malagasy Green Theme - Dark Mode */
+  --background: oklch(0.15 0.02 145);
+  --foreground: oklch(0.95 0.01 145);
+  --card: oklch(0.18 0.02 145);
+  --card-foreground: oklch(0.95 0.01 145);
+  --popover: oklch(0.18 0.02 145);
+  --popover-foreground: oklch(0.95 0.01 145);
+  
+  /* Primary: Lighter green for dark mode */
+  --primary: oklch(0.60 0.15 145);
+  --primary-foreground: oklch(0.12 0.02 145);
+  
+  /* Secondary */
+  --secondary: oklch(0.25 0.04 145);
+  --secondary-foreground: oklch(0.90 0.02 145);
+  
+  /* Muted */
+  --muted: oklch(0.22 0.03 145);
+  --muted-foreground: oklch(0.65 0.03 145);
+  
+  /* Accent */
+  --accent: oklch(0.50 0.12 145);
+  --accent-foreground: oklch(0.95 0.01 145);
+  
+  /* Destructive */
+  --destructive: oklch(0.45 0.18 27);
+  --destructive-foreground: oklch(0.95 0.02 27);
+  
+  /* Borders and inputs */
+  --border: oklch(0.28 0.03 145);
+  --input: oklch(0.25 0.025 145);
+  --ring: oklch(0.55 0.12 145);
+  
+  /* Charts */
+  --chart-1: oklch(0.55 0.15 145);
+  --chart-2: oklch(0.60 0.12 160);
+  --chart-3: oklch(0.70 0.10 130);
+  --chart-4: oklch(0.65 0.08 120);
+  --chart-5: oklch(0.50 0.10 145);
+  
+  /* Sidebar */
+  --sidebar: oklch(0.18 0.02 145);
+  --sidebar-foreground: oklch(0.95 0.01 145);
+  --sidebar-primary: oklch(0.60 0.15 145);
+  --sidebar-primary-foreground: oklch(0.12 0.02 145);
+  --sidebar-accent: oklch(0.25 0.04 145);
+  --sidebar-accent-foreground: oklch(0.90 0.02 145);
+  --sidebar-border: oklch(0.28 0.03 145);
+  --sidebar-ring: oklch(0.55 0.12 145);
+  
+  /* Editor-specific */
+  --editor-bg: oklch(0.16 0.015 145);
+  --editor-selection: oklch(0.30 0.08 145);
+  --ghost-text: oklch(0.45 0.03 145);
+  --wavy-error: oklch(0.55 0.22 27);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* Editor tokens */
+  --color-editor-bg: var(--editor-bg);
+  --color-editor-selection: var(--editor-selection);
+  --color-ghost-text: var(--ghost-text);
+  --color-wavy-error: var(--wavy-error);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* TipTap Editor Styles */
+.tiptap-editor {
+  @apply min-h-100 w-full outline-none;
+}
+
+.tiptap-editor:focus {
+  @apply outline-none;
+}
+
+.tiptap-editor p {
+  @apply my-2 leading-relaxed;
+}
+
+.tiptap-editor h1 {
+  @apply text-3xl font-bold mt-6 mb-3;
+}
+
+.tiptap-editor h2 {
+  @apply text-2xl font-semibold mt-5 mb-2;
+}
+
+.tiptap-editor h3 {
+  @apply text-xl font-medium mt-4 mb-2;
+}
+
+.tiptap-editor ul {
+  @apply list-disc pl-6 my-2;
+}
+
+.tiptap-editor ol {
+  @apply list-decimal pl-6 my-2;
+}
+
+.tiptap-editor li {
+  @apply my-1;
+}
+
+.tiptap-editor blockquote {
+  @apply border-l-4 border-primary/40 pl-4 italic my-4 text-muted-foreground;
+}
+
+.tiptap-editor strong {
+  @apply font-bold;
+}
+
+.tiptap-editor em {
+  @apply italic;
+}
+
+.tiptap-editor u {
+  @apply underline;
+}
+
+.tiptap-editor s {
+  @apply line-through;
+}
+
+.tiptap-editor .is-editor-empty:first-child::before {
+  @apply text-muted-foreground/60 float-left h-0 pointer-events-none;
+  content: attr(data-placeholder);
+}
+
+/* Ghost text for autocomplete */
+.ghost-text {
+  color: var(--ghost-text);
+  opacity: 0.7;
+}
+
+/* Wavy underline for phonotactic errors */
+.phonotactic-error {
+  text-decoration: underline wavy;
+  text-decoration-color: var(--wavy-error);
+  text-underline-offset: 2px;
+}
+
+/* Selection styling */
+.tiptap-editor ::selection {
+  background-color: var(--editor-selection);
+}
+
+/* Text alignment */
+.tiptap-editor .text-left {
+  text-align: left;
+}
+
+.tiptap-editor .text-center {
+  text-align: center;
+}
+
+.tiptap-editor .text-right {
+  text-align: right;
+}
+
+.tiptap-editor .text-justify {
+  text-align: justify;
+}

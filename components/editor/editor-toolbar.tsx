@@ -1,0 +1,467 @@
+'use client';
+
+import { type Editor } from '@tiptap/react';
+import { Toggle } from '@/components/ui/toggle';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  Quote,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Undo,
+  Redo,
+  ChevronDown,
+  Sparkles,
+  MessageCircle,
+  Volume2,
+  Languages,
+  BookOpen,
+  SpellCheck,
+  ScanSearch,
+} from 'lucide-react';
+import { useEditorStore } from '@/hooks/use-editor-store';
+import { cn } from '@/lib/utils';
+import { translate, mockTranslate } from '@/services/translation';
+import { getAutocompleteSuggestions, mockAutocomplete } from '@/services/autocomplete';
+import { checkPhonotactics, mockPhonotacticCheck } from '@/services/phonotactic';
+import { toast } from 'sonner';
+
+interface EditorToolbarProps {
+  editor: Editor;
+  className?: string;
+  onSpellCheckRequest?: () => void;
+}
+
+interface ToolbarButtonProps {
+  editor: Editor;
+  onClick: () => void;
+  isActive?: boolean;
+  disabled?: boolean;
+  tooltip: string;
+  children: React.ReactNode;
+}
+
+function ToolbarButton({
+  onClick,
+  isActive,
+  disabled,
+  tooltip,
+  children,
+}: ToolbarButtonProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Toggle
+          size="sm"
+          pressed={isActive}
+          onPressedChange={onClick}
+          disabled={disabled}
+          className={cn(
+            'h-8 w-8 p-0',
+            isActive && 'bg-primary/10 text-primary'
+          )}
+        >
+          {children}
+        </Toggle>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={5}>
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+export function EditorToolbar({ editor, className, onSpellCheckRequest }: EditorToolbarProps) {
+  const { setChatOpen, selectedText, setAiLoading, aiLoading, settings } = useEditorStore();
+
+  const applyTranslation = async () => {
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, ' ');
+    if (!text.trim()) {
+      toast.error('Sélectionne un texte à traduire');
+      return;
+    }
+    setAiLoading('translation', true);
+    try {
+      const response = await translate(text, 'mg-fr');
+      const result =
+        response.status === 'success' && response.data
+          ? response.data
+          : mockTranslate(text, 'mg-fr');
+      editor.chain().focus().insertContentAt({ from, to }, result.translated).run();
+      toast.success('Traduction insérée');
+    } catch {
+      const result = mockTranslate(text, 'mg-fr');
+      editor.chain().focus().insertContentAt({ from, to }, result.translated).run();
+      toast.success('Traduction mock insérée');
+    } finally {
+      setAiLoading('translation', false);
+    }
+  };
+
+  const runPhonotacticCheck = async () => {
+    const text = editor.getText();
+    setAiLoading('phonotactic', true);
+    try {
+      const response = await checkPhonotactics(text);
+      const result =
+        response.status === 'success' && response.data
+          ? response.data
+          : mockPhonotacticCheck(text);
+      if (result.errors.length === 0) {
+        toast.success('Aucune erreur phonotactique');
+      } else {
+        toast.warning(
+          `${result.errors.length} erreur(s) phonotactique(s) détectée(s)`
+        );
+      }
+    } catch {
+      const result = mockPhonotacticCheck(text);
+      if (result.errors.length === 0) {
+        toast.success('Aucune erreur phonotactique');
+      } else {
+        toast.warning(
+          `${result.errors.length} erreur(s) phonotactique(s) détectée(s)`
+        );
+      }
+    } finally {
+      setAiLoading('phonotactic', false);
+    }
+  };
+
+  const applyAutocomplete = async () => {
+    const { from, to } = editor.state.selection;
+    if (from !== to) return;
+    const text = editor.getText();
+    const cursorPosition = from;
+    setAiLoading('autocomplete', true);
+    try {
+      const response = await getAutocompleteSuggestions(text, cursorPosition);
+      const result =
+        response.status === 'success' && response.data
+          ? response.data
+          : mockAutocomplete(text, cursorPosition);
+      const suggestion = result.suggestions[0];
+      if (!suggestion) {
+        toast.info('Aucune suggestion');
+        return;
+      }
+      const completion = suggestion.startsWith(result.prefix)
+        ? suggestion.slice(result.prefix.length)
+        : suggestion;
+      editor.chain().focus().insertContent(completion).run();
+      toast.success(`Suggestion appliquée: ${suggestion}`);
+    } catch {
+      const result = mockAutocomplete(text, cursorPosition);
+      const suggestion = result.suggestions[0];
+      if (!suggestion) {
+        toast.info('Aucune suggestion');
+      } else {
+        const completion = suggestion.startsWith(result.prefix)
+          ? suggestion.slice(result.prefix.length)
+          : suggestion;
+        editor.chain().focus().insertContent(completion).run();
+        toast.success(`Suggestion mock appliquée: ${suggestion}`);
+      }
+    } finally {
+      setAiLoading('autocomplete', false);
+    }
+  };
+
+  const alignments = [
+    { value: 'left', icon: AlignLeft, label: 'Align Left' },
+    { value: 'center', icon: AlignCenter, label: 'Align Center' },
+    { value: 'right', icon: AlignRight, label: 'Align Right' },
+    { value: 'justify', icon: AlignJustify, label: 'Justify' },
+  ] as const;
+
+  const currentAlignment = alignments.find((a) =>
+    editor.isActive({ textAlign: a.value })
+  ) || alignments[0];
+
+  const CurrentAlignIcon = currentAlignment.icon;
+
+  return (
+    <div
+      className={cn(
+        'flex flex-wrap items-center gap-1 p-2 bg-card border border-border rounded-lg mb-2',
+        className
+      )}
+    >
+      {/* Text Formatting */}
+      <div className="flex items-center gap-0.5">
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          isActive={editor.isActive('bold')}
+          tooltip="Bold (Ctrl+B)"
+        >
+          <Bold className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          isActive={editor.isActive('italic')}
+          tooltip="Italic (Ctrl+I)"
+        >
+          <Italic className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          isActive={editor.isActive('underline')}
+          tooltip="Underline (Ctrl+U)"
+        >
+          <Underline className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          isActive={editor.isActive('strike')}
+          tooltip="Strikethrough"
+        >
+          <Strikethrough className="h-4 w-4" />
+        </ToolbarButton>
+      </div>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* Headings */}
+      <div className="flex items-center gap-0.5">
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          isActive={editor.isActive('heading', { level: 1 })}
+          tooltip="Heading 1"
+        >
+          <Heading1 className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          isActive={editor.isActive('heading', { level: 2 })}
+          tooltip="Heading 2"
+        >
+          <Heading2 className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          isActive={editor.isActive('heading', { level: 3 })}
+          tooltip="Heading 3"
+        >
+          <Heading3 className="h-4 w-4" />
+        </ToolbarButton>
+      </div>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* Lists */}
+      <div className="flex items-center gap-0.5">
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          isActive={editor.isActive('bulletList')}
+          tooltip="Bullet List"
+        >
+          <List className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          isActive={editor.isActive('orderedList')}
+          tooltip="Numbered List"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          isActive={editor.isActive('blockquote')}
+          tooltip="Block Quote"
+        >
+          <Quote className="h-4 w-4" />
+        </ToolbarButton>
+      </div>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* Text Alignment */}
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 gap-1 px-2">
+                <CurrentAlignIcon className="h-4 w-4" />
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={5}>
+            Text Alignment
+          </TooltipContent>
+        </Tooltip>
+        <DropdownMenuContent align="start">
+          {alignments.map((alignment) => (
+            <DropdownMenuItem
+              key={alignment.value}
+              onClick={() =>
+                editor.chain().focus().setTextAlign(alignment.value).run()
+              }
+              className={cn(
+                editor.isActive({ textAlign: alignment.value }) &&
+                  'bg-primary/10 text-primary'
+              )}
+            >
+              <alignment.icon className="mr-2 h-4 w-4" />
+              {alignment.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* Undo/Redo */}
+      <div className="flex items-center gap-0.5">
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          tooltip="Undo (Ctrl+Z)"
+        >
+          <Undo className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          editor={editor}
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          tooltip="Redo (Ctrl+Y)"
+        >
+          <Redo className="h-4 w-4" />
+        </ToolbarButton>
+      </div>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* AI Features */}
+      <div className="flex items-center gap-0.5">
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1 px-2 text-primary hover:text-primary hover:bg-primary/10"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline text-xs">AI</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={5}>
+              AI Features
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem
+              disabled={!selectedText || aiLoading.spellcheck || !settings.spellCheckEnabled}
+              onClick={() => onSpellCheckRequest?.()}
+            >
+              <SpellCheck className="mr-2 h-4 w-4" />
+              Spell Check
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!selectedText}
+              onClick={() => {
+                // Trigger lemmatization
+                setAiLoading('lemmatization', true);
+              }}
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              Lemmatize (Fandrasan-teny)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!selectedText || aiLoading.translation}
+              onClick={applyTranslation}
+            >
+              <Languages className="mr-2 h-4 w-4" />
+              Translate (Dikanteny)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={aiLoading.autocomplete || !settings.autocompleteEnabled}
+              onClick={applyAutocomplete}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Autocomplete
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={aiLoading.phonotactic || !settings.phonotacticCheckEnabled}
+              onClick={runPhonotacticCheck}
+            >
+              <ScanSearch className="mr-2 h-4 w-4" />
+              Vérifier Phonotactique
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                // Trigger TTS
+                setAiLoading('tts', true);
+              }}
+            >
+              <Volume2 className="mr-2 h-4 w-4" />
+              Read Aloud (Lire)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => setChatOpen(true)}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={5}>
+            Open Chatbot Assistant
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </div>
+  );
+}
