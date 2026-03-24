@@ -32,12 +32,22 @@ export interface LemmatizationResponse {
 // Autocomplete
 export interface AutocompleteRequest {
   text: string;
-  cursorPosition: number;
+  top_k: number;
 }
 
 export interface AutocompleteResponse {
   suggestions: string[];
   prefix: string;
+}
+
+// Sentiment Check
+export interface SentimentCheckRequest {
+  text: string;
+}
+
+export interface SentimentCheckResponse {
+  text: string;
+  sentiment: string;
 }
 
 // Translation

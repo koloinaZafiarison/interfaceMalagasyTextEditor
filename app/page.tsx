@@ -167,14 +167,6 @@ export default function EditorPage() {
                     {settings.autocompleteEnabled ? 'On' : 'Off'}
                   </span>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => updateSettings({ phonotacticCheckEnabled: !settings.phonotacticCheckEnabled })}
-                >
-                  <span className="flex-1">Phonotactic Check</span>
-                  <span className={settings.phonotacticCheckEnabled ? 'text-primary' : 'text-muted-foreground'}>
-                    {settings.phonotacticCheckEnabled ? 'On' : 'Off'}
-                  </span>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

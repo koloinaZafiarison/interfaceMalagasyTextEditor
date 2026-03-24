@@ -39,13 +39,11 @@ import {
   Languages,
   BookOpen,
   SpellCheck,
-  ScanSearch,
 } from 'lucide-react';
 import { useEditorStore } from '@/hooks/use-editor-store';
 import { cn } from '@/lib/utils';
 import { translate, mockTranslate } from '@/services/translation';
-import { getAutocompleteSuggestions, mockAutocomplete } from '@/services/autocomplete';
-import { checkPhonotactics, mockPhonotacticCheck } from '@/services/phonotactic';
+import { getAutocompleteSuggestions } from '@/services/autocomplete';
 import { toast } from 'sonner';
 
 interface EditorToolbarProps {
@@ -121,48 +119,18 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest }: Editor
     }
   };
 
-  const runPhonotacticCheck = async () => {
-    const text = editor.getText();
-    setAiLoading('phonotactic', true);
-    try {
-      const response = await checkPhonotactics(text);
-      const result =
-        response.status === 'success' && response.data
-          ? response.data
-          : mockPhonotacticCheck(text);
-      if (result.errors.length === 0) {
-        toast.success('Aucune erreur phonotactique');
-      } else {
-        toast.warning(
-          `${result.errors.length} erreur(s) phonotactique(s) détectée(s)`
-        );
-      }
-    } catch {
-      const result = mockPhonotacticCheck(text);
-      if (result.errors.length === 0) {
-        toast.success('Aucune erreur phonotactique');
-      } else {
-        toast.warning(
-          `${result.errors.length} erreur(s) phonotactique(s) détectée(s)`
-        );
-      }
-    } finally {
-      setAiLoading('phonotactic', false);
-    }
-  };
-
   const applyAutocomplete = async () => {
     const { from, to } = editor.state.selection;
     if (from !== to) return;
     const text = editor.getText();
-    const cursorPosition = from;
     setAiLoading('autocomplete', true);
     try {
-      const response = await getAutocompleteSuggestions(text, cursorPosition);
-      const result =
-        response.status === 'success' && response.data
-          ? response.data
-          : mockAutocomplete(text, cursorPosition);
+      const response = await getAutocompleteSuggestions(text, 3);
+      if (response.status !== 'success' || !response.data) {
+        toast.error("Erreur API d'autocomplétion");
+        return;
+      }
+      const result = response.data;
       const suggestion = result.suggestions[0];
       if (!suggestion) {
         toast.info('Aucune suggestion');
@@ -171,20 +139,13 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest }: Editor
       const completion = suggestion.startsWith(result.prefix)
         ? suggestion.slice(result.prefix.length)
         : suggestion;
-      editor.chain().focus().insertContent(completion).run();
+      const completionWithTrailingSpace = /\s$/.test(completion)
+        ? completion
+        : `${completion} `;
+      editor.chain().focus().insertContent(completionWithTrailingSpace).run();
       toast.success(`Suggestion appliquée: ${suggestion}`);
     } catch {
-      const result = mockAutocomplete(text, cursorPosition);
-      const suggestion = result.suggestions[0];
-      if (!suggestion) {
-        toast.info('Aucune suggestion');
-      } else {
-        const completion = suggestion.startsWith(result.prefix)
-          ? suggestion.slice(result.prefix.length)
-          : suggestion;
-        editor.chain().focus().insertContent(completion).run();
-        toast.success(`Suggestion mock appliquée: ${suggestion}`);
-      }
+      toast.error("Erreur réseau d'autocomplétion");
     } finally {
       setAiLoading('autocomplete', false);
     }
@@ -426,13 +387,6 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest }: Editor
             >
               <Sparkles className="mr-2 h-4 w-4" />
               Autocomplete
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              disabled={aiLoading.phonotactic || !settings.phonotacticCheckEnabled}
-              onClick={runPhonotacticCheck}
-            >
-              <ScanSearch className="mr-2 h-4 w-4" />
-              Vérifier Phonotactique
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {

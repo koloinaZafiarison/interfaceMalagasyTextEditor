@@ -15,9 +15,9 @@ import { useDebouncedCallback } from '@/hooks/use-debounce';
 import { EditorToolbar } from './editor-toolbar';
 import { EditorStatusBar } from './editor-status-bar';
 import { cn } from '@/lib/utils';
-import { getAutocompleteSuggestions, mockAutocomplete } from '@/services/autocomplete';
-import { checkPhonotactics, mockPhonotacticCheck } from '@/services/phonotactic';
+import { getAutocompleteSuggestions } from '@/services/autocomplete';
 import { checkSpelling, mockSpellCheck } from '@/services/spell-check';
+import { checkSentiment } from '@/services/sentiment-check';
 import { toast } from 'sonner';
 
 interface TiptapEditorProps {
@@ -77,6 +77,8 @@ const GhostTextExtension = Extension.create({
 export function TiptapEditor({ className }: TiptapEditorProps) {
   const autocompleteRequestIdRef = useRef(0);
   const spellCheckRequestIdRef = useRef(0);
+  const sentimentRequestIdRef = useRef(0);
+  const lastSentimentSentenceRef = useRef('');
   const [suggestionPopup, setSuggestionPopup] = useState<SuggestionPopupState>({
     open: false,
     type: 'autocomplete',
@@ -97,8 +99,8 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
     setSelection,
     setGhostText,
     clearGhostText,
-    setPhonotacticMarks,
-    clearPhonotacticMarks,
+    setSentiment,
+    clearSentiment,
   } = useEditorStore();
 
   const editor = useEditor({
@@ -170,27 +172,26 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
           }
         };
 
-        // Instant local suggestion on every keystroke.
-        const instant = mockAutocomplete(text, cursorPosition);
-        applyGhostSuggestion(instant.suggestions[0] || '', instant.prefix);
-        openAutocompletePopup(instant.suggestions, instant.prefix, cursorPosition);
-
-        // Async API refresh (non-blocking) with stale-request protection.
+        // API refresh (non-blocking) with stale-request protection.
         const requestId = ++autocompleteRequestIdRef.current;
-        void getAutocompleteSuggestions(text, cursorPosition)
+        void getAutocompleteSuggestions(text, 3)
           .then((response) => {
             if (requestId !== autocompleteRequestIdRef.current) return;
             if (editor.state.selection.from !== cursorPosition) return;
 
-            const result =
-              response.status === 'success' && response.data
-                ? response.data
-                : instant;
-            applyGhostSuggestion(result.suggestions[0] || '', result.prefix);
-            openAutocompletePopup(result.suggestions, result.prefix, cursorPosition);
+            if (response.status === 'success' && response.data) {
+              const result = response.data;
+              applyGhostSuggestion(result.suggestions[0] || '', result.prefix);
+              openAutocompletePopup(result.suggestions, result.prefix, cursorPosition);
+              return;
+            }
+
+            clearGhostText();
+            closeSuggestionPopup();
           })
           .catch(() => {
-            // Keep instant suggestion on network failure.
+            clearGhostText();
+            closeSuggestionPopup();
           });
       } else {
         if (useEditorStore.getState().ghostText.visible) {
@@ -200,36 +201,31 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
         closeSuggestionPopup();
       }
 
-      if (settings.phonotacticCheckEnabled) {
-        void checkPhonotactics(text)
+      const extractLastCompletedSentence = (value: string): string => {
+        const normalized = value.replace(/\s+/g, ' ').trim();
+        if (!normalized) return '';
+        const matches = normalized.match(/[^.!?\n]+[.!?]/g);
+        return matches?.[matches.length - 1]?.trim() ?? '';
+      };
+
+      const completedSentence = extractLastCompletedSentence(text);
+      if (!completedSentence) {
+        lastSentimentSentenceRef.current = '';
+        clearSentiment();
+      } else if (completedSentence !== lastSentimentSentenceRef.current) {
+        lastSentimentSentenceRef.current = completedSentence;
+        const requestId = ++sentimentRequestIdRef.current;
+        void checkSentiment(completedSentence)
           .then((response) => {
-            const result =
-              response.status === 'success' && response.data
-                ? response.data
-                : mockPhonotacticCheck(text);
-            setPhonotacticMarks(
-              result.errors.map((error) => ({
-                from: error.position.start,
-                to: error.position.end,
-                pattern: error.pattern,
-                message: error.message,
-              }))
-            );
+            if (requestId !== sentimentRequestIdRef.current) return;
+            if (response.status !== 'success' || !response.data) return;
+            setSentiment(response.data.sentiment, response.data.text);
           })
           .catch(() => {
-            const mockResult = mockPhonotacticCheck(text);
-            setPhonotacticMarks(
-              mockResult.errors.map((error) => ({
-                from: error.position.start,
-                to: error.position.end,
-                pattern: error.pattern,
-                message: error.message,
-              }))
-            );
+            // Keep previous sentiment on network errors.
           });
-      } else {
-        clearPhonotacticMarks();
       }
+
     },
     onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection;
@@ -254,13 +250,18 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
         return;
       }
 
-      const coords = editor.view.coordsAtPos(position);
+      const anchorPos = Math.max(1, position - prefix.length);
+      const anchorCoords = editor.view.coordsAtPos(anchorPos);
+      const cursorCoords = editor.view.coordsAtPos(position);
+      const editorRect = editor.view.dom.getBoundingClientRect();
       setSuggestionPopup({
         open: true,
         type: 'autocomplete',
         suggestions: suggestions.slice(0, 3),
-        x: coords.left,
-        y: coords.bottom + 6,
+        // Convert viewport coordinates to editor-local coordinates.
+        // This anchors the popup right after the typed token.
+        x: cursorCoords.left - editorRect.left,
+        y: anchorCoords.bottom - editorRect.top + 6,
         from: position,
         to: position,
         prefix,
@@ -324,7 +325,10 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
           suggestionPopup.prefix && suggestion.startsWith(suggestionPopup.prefix)
             ? suggestion.slice(suggestionPopup.prefix.length)
             : suggestion;
-        editor.chain().focus().insertContent(completion).run();
+        const completionWithTrailingSpace = /\s$/.test(completion)
+          ? completion
+          : `${completion} `;
+        editor.chain().focus().insertContent(completionWithTrailingSpace).run();
       } else {
         editor
           .chain()
@@ -377,7 +381,10 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
       const ghost = useEditorStore.getState().ghostText;
       if (ghost.visible && ghost.text) {
         e.preventDefault();
-        editor.chain().focus().insertContent(ghost.text).run();
+        const ghostWithTrailingSpace = /\s$/.test(ghost.text)
+          ? ghost.text
+          : `${ghost.text} `;
+        editor.chain().focus().insertContent(ghostWithTrailingSpace).run();
         clearGhostText();
       }
     }

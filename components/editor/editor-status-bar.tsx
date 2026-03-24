@@ -11,7 +11,7 @@ interface EditorStatusBarProps {
 }
 
 export function EditorStatusBar({ editor, className }: EditorStatusBarProps) {
-  const { wordCount, characterCount, saveStatus, settings, ghostText, phonotacticMarks } = useEditorStore();
+  const { wordCount, characterCount, saveStatus, settings, ghostText, sentiment } = useEditorStore();
 
   const formatLastSaved = (date: Date | undefined) => {
     if (!date) return '';
@@ -88,17 +88,17 @@ export function EditorStatusBar({ editor, className }: EditorStatusBarProps) {
 
       <div className="flex items-center gap-4">
         {settings.autocompleteEnabled && ghostText.visible && (
-          <span className="hidden md:inline text-[10px] text-muted-foreground/80">
+          <span className="hidden md:inline text-[20px] text-muted-foreground/80">
             Suggestion: {ghostText.text}
           </span>
         )}
-        {settings.phonotacticCheckEnabled && (
-          <span className="hidden sm:inline text-[10px] text-muted-foreground/80">
-            Phonotactique: {phonotacticMarks.length} erreur(s)
+        {sentiment && (
+          <span className="hidden md:inline font-bold text-[20px] text-muted-foreground/80">
+            Sentiment: {sentiment}
           </span>
         )}
         {settings.autoSaveEnabled && (
-          <span className="hidden sm:inline text-[10px] text-muted-foreground/70">
+          <span className="hidden sm:inline text-[18px] text-muted-foreground/70">
             Auto-save: {settings.autoSaveInterval / 1000}s
           </span>
         )}

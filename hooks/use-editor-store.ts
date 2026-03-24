@@ -30,6 +30,12 @@ interface EditorStore {
   ghostText: GhostTextState;
   setGhostText: (state: Partial<GhostTextState>) => void;
   clearGhostText: () => void;
+
+  // Sentiment check
+  sentiment: string | null;
+  sentimentText: string;
+  setSentiment: (sentiment: string, text: string) => void;
+  clearSentiment: () => void;
   
   // Phonotactic marks
   phonotacticMarks: PhonotacticMark[];
@@ -92,6 +98,12 @@ export const useEditorStore = create<EditorStore>()(
         set({ ghostText: { ...get().ghostText, ...state } }),
       clearGhostText: () => 
         set({ ghostText: { visible: false, text: '', position: 0 } }),
+
+      // Sentiment
+      sentiment: null,
+      sentimentText: '',
+      setSentiment: (sentiment, text) => set({ sentiment, sentimentText: text }),
+      clearSentiment: () => set({ sentiment: null, sentimentText: '' }),
       
       // Phonotactic marks
       phonotacticMarks: [],

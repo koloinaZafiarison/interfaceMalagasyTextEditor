@@ -11,87 +11,81 @@ import type {
  */
 export async function getAutocompleteSuggestions(
   text: string,
-  cursorPosition: number
+  topK = 3
 ): Promise<ApiResponse<AutocompleteResponse>> {
-  const request: AutocompleteRequest = { text, cursorPosition };
-  const instant: ApiResponse<AutocompleteResponse> = {
-    status: 'success',
-    data: mockAutocomplete(text, cursorPosition),
-  };
+  const request: AutocompleteRequest = { text, top_k: topK };
+  const response = await apiPost<AutocompleteRequest, unknown>(
+    API_ENDPOINTS.autocomplete,
+    request
+  );
 
-  const response = await Promise.race([
-    apiPost<AutocompleteRequest, AutocompleteResponse>(
-      API_ENDPOINTS.autocomplete,
-      request
-    ),
-    new Promise<ApiResponse<AutocompleteResponse>>((resolve) =>
-      setTimeout(() => resolve(instant), 150)
-    ),
-  ]);
+  if (response.status !== 'success' || !response.data) {
+    return { status: 'error', error: response.error ?? 'Autocomplete request failed' };
+  }
 
-  if (response.status === 'success' && response.data) return response;
-  return instant;
+  const normalized = normalizeAutocompleteResponse(response.data, text);
+  return { status: 'success', data: normalized };
 }
 
-/**
- * Mock autocomplete for development/demo purposes
- * This simulates the API response when the backend is not available
- */
-export function mockAutocomplete(
-  text: string,
-  cursorPosition: number
+function getLastToken(text: string): string {
+  const trimmed = text.replace(/\s+$/, '');
+  const tokens = trimmed.split(/\s+/);
+  return tokens[tokens.length - 1] ?? '';
+}
+
+function normalizeAutocompleteResponse(
+  raw: unknown,
+  sourceText: string
 ): AutocompleteResponse {
-  // Get the last word being typed
-  const textBeforeCursor = text.substring(0, cursorPosition);
-  const words = textBeforeCursor.split(/\s+/);
-  const lastWord = words[words.length - 1]?.toLowerCase() || '';
+  const prefix = getLastToken(sourceText);
 
-  // Common Malagasy word completions (for demo)
-  const completions: Record<string, string[]> = {
-    'man': ['manoratra', 'manana', 'mandray', 'mandeha', 'manaiky'],
-    'mi': ['miasa', 'mianatra', 'miteny', 'miresaka', 'miaina'],
-    'fa': ['fahendrena', 'fahalalana', 'fanantenana', 'fandraisana'],
-    'fi': ['fitiavana', 'fiainana', 'fiaraha-monina', 'fianarana'],
-    'ts': ['tsara', 'tsaratsara', 'tsisy', 'tsy'],
-    'ma': ['manoratra', 'masina', 'mahita', 'mahay', 'mamaky'],
-    'ho': ['ho avy', 'ho tsara', 'ho ela', 'ho any'],
-    'an': ['ankehitriny', 'anio', 'any', 'antso'],
-  };
+  // Expected shape can be:
+  // { suggestions: string[] } or { suggestions: [{ word, prob }] }
+  if (
+    typeof raw === 'object' &&
+    raw !== null &&
+    'suggestions' in raw &&
+    Array.isArray((raw as { suggestions?: unknown }).suggestions)
+  ) {
+    const suggestionsRaw = (raw as { suggestions: unknown[] }).suggestions ?? [];
+    const suggestions = suggestionsRaw
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (
+          typeof item === 'object' &&
+          item !== null &&
+          'word' in item &&
+          typeof (item as { word?: unknown }).word === 'string'
+        ) {
+          return (item as { word: string }).word;
+        }
+        return null;
+      })
+      .filter((item): item is string => Boolean(item))
+      .slice(0, 3);
+    return { suggestions, prefix };
+  }
 
-  // Find matching prefix
-  for (const [prefix, suggestions] of Object.entries(completions)) {
-    if (lastWord.startsWith(prefix) && lastWord.length >= 2) {
-      const filtered = suggestions.filter(
-        (s) => s.startsWith(lastWord) && s !== lastWord
-      );
-      if (filtered.length > 0) {
-        return {
-          suggestions: filtered,
-          prefix: lastWord,
-        };
-      }
+  // Alternate shape: string[]
+  if (Array.isArray(raw)) {
+    const suggestions = raw
+      .filter((item): item is string => typeof item === 'string')
+      .slice(0, 3);
+    return { suggestions, prefix };
+  }
+
+  // Alternate shape: { words: string[] } or { predictions: string[] }
+  if (typeof raw === 'object' && raw !== null) {
+    const candidate =
+      (raw as { words?: unknown }).words ??
+      (raw as { predictions?: unknown }).predictions;
+    if (Array.isArray(candidate)) {
+      const suggestions = candidate
+        .filter((item): item is string => typeof item === 'string')
+        .slice(0, 3);
+      return { suggestions, prefix };
     }
   }
 
-  // Phrase completions based on context
-  const phraseCompletions: Record<string, string[]> = {
-    'mba': ['mba ho tsara', 'mba hahasoa', 'mba hanome'],
-    'amin': ["amin'ny", "amin'izao fotoana izao"],
-    'izany': ['izany hoe', 'izany no'],
-    'raha': ['raha tsy izany', 'raha mbola'],
-  };
-
-  for (const [trigger, phrases] of Object.entries(phraseCompletions)) {
-    if (lastWord === trigger) {
-      return {
-        suggestions: phrases,
-        prefix: trigger,
-      };
-    }
-  }
-
-  return {
-    suggestions: [],
-    prefix: lastWord,
-  };
+  return { suggestions: [], prefix };
 }

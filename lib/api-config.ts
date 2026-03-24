@@ -1,11 +1,12 @@
 // API Configuration for Malagasy Text Editor
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export const API_ENDPOINTS = {
   spellcheck: `${API_BASE}/api/spellcheck/`,
   lemmatize: `${API_BASE}/api/lemmatize/`,
   autocomplete: `${API_BASE}/api/autocomplete/`,
+  sentimentCheck: `${API_BASE}/api/sentiment-check/`,
   translate: `${API_BASE}/api/translate/`,
   phonotactic: `${API_BASE}/api/phonotactic-check/`,
   tts: `${API_BASE}/api/tts/`,
