@@ -1,5 +1,4 @@
 import { API_ENDPOINTS } from '@/lib/api-config';
-import { apiPost } from '@/lib/api-client';
 import type { TTSRequest, TTSResponse, ApiResponse } from '@/types/api';
 
 /**
@@ -10,7 +9,26 @@ export async function textToSpeech(
   voice?: string
 ): Promise<ApiResponse<TTSResponse>> {
   const request: TTSRequest = { text, voice };
-  return apiPost<TTSRequest, TTSResponse>(API_ENDPOINTS.tts, request);
+
+  try {
+    const response = await fetch(API_ENDPOINTS.tts, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.statusText}`);
+    }
+
+    const audioBlob = await response.blob();
+    return { data: { audio: audioBlob }, status: 'success' };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { error: message, status: 'error' };
+  }
 }
 
 /**

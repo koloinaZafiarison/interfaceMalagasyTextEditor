@@ -36,6 +36,7 @@ import {
   Sparkles,
   MessageCircle,
   Volume2,
+  Loader2,
   Languages,
   BookOpen,
   SpellCheck,
@@ -44,6 +45,7 @@ import { useEditorStore } from '@/hooks/use-editor-store';
 import { cn } from '@/lib/utils';
 import { translate, mockTranslate } from '@/services/translation';
 import { getAutocompleteSuggestions } from '@/services/autocomplete';
+import { textToSpeech, speakWithWebSpeech } from '@/services/tts';
 import { toast } from 'sonner';
 
 interface EditorToolbarProps {
@@ -148,6 +150,40 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest }: Editor
       toast.error("Erreur réseau d'autocomplétion");
     } finally {
       setAiLoading('autocomplete', false);
+    }
+  };
+
+  const readAloud = async () => {
+    const text = selectedText?.trim() ? selectedText : editor.getText();
+    if (!text.trim()) {
+      toast.error('Aucun texte a lire');
+      return;
+    }
+
+    setAiLoading('tts', true);
+    try {
+      const apiResponse = await textToSpeech(text);
+      if (apiResponse.status === 'success' && apiResponse.data?.audio) {
+        const audioUrl = URL.createObjectURL(apiResponse.data.audio);
+        const audio = new Audio(audioUrl);
+        audio.onended = () => URL.revokeObjectURL(audioUrl);
+        audio.onerror = () => {
+          URL.revokeObjectURL(audioUrl);
+          toast.error('Lecture audio echouee');
+        };
+        await audio.play();
+        toast.success(selectedText ? 'Lecture de la selection' : 'Lecture du document');
+        return;
+      }
+
+      const utterance = speakWithWebSpeech(text, { rate: 0.85, pitch: 1, volume: 1 });
+      if (!utterance) {
+        toast.error(apiResponse.error || 'Text-to-speech non disponible');
+      }
+    } catch {
+      toast.error('Erreur lors de la lecture vocale');
+    } finally {
+      setAiLoading('tts', false);
     }
   };
 
@@ -389,13 +425,15 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest }: Editor
               Autocomplete
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => {
-                // Trigger TTS
-                setAiLoading('tts', true);
-              }}
+              disabled={aiLoading.tts}
+              onClick={readAloud}
             >
-              <Volume2 className="mr-2 h-4 w-4" />
-              Read Aloud (Lire)
+              {aiLoading.tts ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Volume2 className="mr-2 h-4 w-4" />
+              )}
+              {aiLoading.tts ? 'Lecture en cours...' : 'Read Aloud (Lire)'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
