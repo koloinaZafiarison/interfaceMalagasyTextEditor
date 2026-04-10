@@ -37,6 +37,11 @@ interface SuggestionPopupState {
 
 const ghostTextPluginKey = new PluginKey('ghost-text-decoration');
 
+function sanitizeEditorHtml(html: string): string {
+  // Prevent script nodes from being rendered inside editor content.
+  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+}
+
 const GhostTextExtension = Extension.create({
   name: 'ghostTextDecoration',
   addProseMirrorPlugins() {
@@ -137,7 +142,7 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
       },
     },
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
+      const html = sanitizeEditorHtml(editor.getHTML());
       setContent(html);
       markDirty();
       
@@ -362,7 +367,7 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
   // Restore content on mount
   useEffect(() => {
     if (editor && content && editor.getHTML() !== content) {
-      editor.commands.setContent(content);
+      editor.commands.setContent(sanitizeEditorHtml(content));
     }
   }, [editor, content]);
 

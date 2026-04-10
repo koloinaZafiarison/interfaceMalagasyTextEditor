@@ -22,11 +22,17 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 export default function EditorPage() {
   const { content, setContent, markSaved, settings, updateSettings } = useEditorStore();
   const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const isDarkTheme = resolvedTheme === 'dark';
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleExport = () => {
     const blob = new Blob([content], { type: 'text/html' });
@@ -91,13 +97,25 @@ export default function EditorPage() {
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
-                  aria-label={isDarkTheme ? 'Activer le mode clair' : 'Activer le mode sombre'}
+                  aria-label={
+                    mounted
+                      ? isDarkTheme
+                        ? 'Activer le mode clair'
+                        : 'Activer le mode sombre'
+                      : 'Basculer le theme'
+                  }
                 >
-                  <span className="text-base leading-none">{isDarkTheme ? '☀️' : '🌙'}</span>
+                  <span className="text-base leading-none">
+                    {mounted ? (isDarkTheme ? '☀️' : '🌙') : '🌙'}
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                {isDarkTheme ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                {mounted
+                  ? isDarkTheme
+                    ? 'Passer en mode clair'
+                    : 'Passer en mode sombre'
+                  : 'Changer le theme'}
               </TooltipContent>
             </Tooltip>
 

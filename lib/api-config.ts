@@ -6,7 +6,7 @@ export const API_ENDPOINTS = {
   spellcheck: `${API_BASE}/api/spellcheck/`,
   lemmatize: `${API_BASE}/api/lemmatize/`,
   autocomplete: `${API_BASE}/api/autocomplete/`,
-  sentimentCheck: `${API_BASE}/api/sentiment-check/`,
+  sentimentCheck: `${API_BASE}/api/predict-sentiment/`,
   translate: `${API_BASE}/api/translate/`,
   phonotactic: `${API_BASE}/api/phonotactic-check/`,
   tts: `${API_BASE}/api/tts/`,
