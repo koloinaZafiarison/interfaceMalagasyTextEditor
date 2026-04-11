@@ -2,21 +2,23 @@
 
 // Spell Check
 export interface SpellCheckRequest {
-  text: string;
+  texte: string;
 }
 
-export interface SpellCheckSuggestion {
+export type SpellCheckApiResponse = {
+  texte: string;
+  corrections: Record<string, [string, number][]>;
+};
+
+export type SpellCheckUIItem = {
   original: string;
   suggestions: string[];
-  position: {
-    start: number;
-    end: number;
-  };
-}
+};
 
-export interface SpellCheckResponse {
-  corrections: SpellCheckSuggestion[];
-}
+export type SpellSuggestion = {
+  word: string;
+  score: number;
+};
 
 // Lemmatization
 export interface LemmatizationRequest {
