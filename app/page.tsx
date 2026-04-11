@@ -204,7 +204,7 @@ export default function EditorPage() {
         <LemmatizationPopover />
         <TranslationPopover />
       </div>
-
+      
       {/* Chatbot Sheet */}
       <ChatbotSheet />
     </div>
