@@ -56,11 +56,13 @@ export interface TranslationRequest {
   direction: 'mg-fr' | 'fr-mg';
 }
 
-export interface TranslationResponse {
-  original: string;
-  translated: string;
-  direction: 'mg-fr' | 'fr-mg';
-}
+export type TranslationResponse = {
+  fr: string;
+  mg: string;
+  en: string;
+  source : string;
+  input : string
+};
 
 // Phonotactic Check
 export interface PhonotacticError {

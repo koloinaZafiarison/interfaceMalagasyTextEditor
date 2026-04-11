@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import { useEditorStore } from '@/hooks/use-editor-store';
 import { cn } from '@/lib/utils';
-import { translate, mockTranslate } from '@/services/translation';
+//import { translate, mockTranslate } from '@/services/translation';
 import { getAutocompleteSuggestions } from '@/services/autocomplete';
 import { textToSpeech, speakWithWebSpeech } from '@/services/tts';
 import { toast } from 'sonner';
@@ -93,32 +93,25 @@ function ToolbarButton({
   );
 }
 
-export function EditorToolbar({ editor, className, onSpellCheckRequest }: EditorToolbarProps) {
-  const { setChatOpen, selectedText, setAiLoading, aiLoading, settings } = useEditorStore();
+export function EditorToolbar({ editor, className, onSpellCheckRequest, }: EditorToolbarProps) {
+  const { setChatOpen, selectedText, setAiLoading, aiLoading, settings, setTranslationOpen } = useEditorStore();
 
   const applyTranslation = async () => {
-    const { from, to } = editor.state.selection;
-    const text = editor.state.doc.textBetween(from, to, ' ');
-    if (!text.trim()) {
-      toast.error('Sélectionne un texte à traduire');
+    if (!selectedText) {
+      toast.error("Sélectionne un texte");
       return;
     }
-    setAiLoading('translation', true);
-    try {
-      const response = await translate(text, 'mg-fr');
-      const result =
-        response.status === 'success' && response.data
-          ? response.data
-          : mockTranslate(text, 'mg-fr');
-      editor.chain().focus().insertContentAt({ from, to }, result.translated).run();
-      toast.success('Traduction insérée');
-    } catch {
-      const result = mockTranslate(text, 'mg-fr');
-      editor.chain().focus().insertContentAt({ from, to }, result.translated).run();
-      toast.success('Traduction mock insérée');
-    } finally {
-      setAiLoading('translation', false);
+
+    // check plusieurs mots
+    const words = selectedText.trim().split(/\s+/);
+
+    if (words.length > 1) {
+      toast.error("Sélectionne un seul mot uniquement");
+      return;
     }
+
+    setAiLoading('translation', true);
+    setTranslationOpen(true);
   };
 
   const applyAutocomplete = async () => {
@@ -411,7 +404,7 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest }: Editor
               Lemmatize (Fandrasan-teny)
             </DropdownMenuItem>
             <DropdownMenuItem
-              disabled={!selectedText || aiLoading.translation}
+              disabled={!selectedText}
               onClick={applyTranslation}
             >
               <Languages className="mr-2 h-4 w-4" />

@@ -61,6 +61,9 @@ interface EditorStore {
   // AI feature loading states
   aiLoading: Record<string, boolean>;
   setAiLoading: (feature: string, loading: boolean) => void;
+
+  isTranslationOpen: boolean;
+  setTranslationOpen: (open: boolean) => void;
 }
 
 const defaultSettings: EditorSettings = {
@@ -133,6 +136,10 @@ export const useEditorStore = create<EditorStore>()(
       aiLoading: {},
       setAiLoading: (feature, loading) => 
         set({ aiLoading: { ...get().aiLoading, [feature]: loading } }),
+      
+      // Translation popover
+      isTranslationOpen: false,
+      setTranslationOpen: (open) => set({ isTranslationOpen: open }),
     }),
     {
       name: 'malagasy-editor-storage',

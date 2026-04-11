@@ -7,12 +7,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { translate, mockTranslate } from '@/services/translation';
+import { translate,  } from '@/services/translation';
 import { useEditorStore } from '@/hooks/use-editor-store';
 import type { TranslationResponse } from '@/types/api';
-import { Languages, X, ArrowLeftRight, Copy, Check } from 'lucide-react';
+import { X, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { Spinner } from '../ui/spinner';
+import { Database, Search, Languages, Globe } from "lucide-react";
 
 interface TranslationPopoverProps {
   children?: React.ReactNode;
@@ -20,72 +21,50 @@ interface TranslationPopoverProps {
 
 export function TranslationPopover({ children }: TranslationPopoverProps) {
   const { selectedText, aiLoading, setAiLoading } = useEditorStore();
-  const [open, setOpen] = useState(false);
   const [result, setResult] = useState<TranslationResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [direction, setDirection] = useState<'mg-fr' | 'fr-mg'>('mg-fr');
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const { isTranslationOpen, setTranslationOpen } = useEditorStore();
 
   useEffect(() => {
-    if (aiLoading.translation && selectedText) {
-      setOpen(true);
+    if (aiLoading.translation && selectedText && !loading) {
+      setTranslationOpen(true);
       handleTranslate();
-      setAiLoading('translation', false);
     }
-  }, [aiLoading.translation, selectedText, setAiLoading]);
+  }, [aiLoading.translation, selectedText]);
 
   const handleTranslate = async () => {
     if (!selectedText) return;
 
     setLoading(true);
+
     try {
-      const response = await translate(selectedText, direction);
-      
+      const response = await translate(selectedText);
+
       if (response.status === 'success' && response.data) {
         setResult(response.data);
-      } else {
-        // Fallback to mock
-        setResult(mockTranslate(selectedText, direction));
       }
-    } catch (error) {
-      // Use mock on error
-      setResult(mockTranslate(selectedText, direction));
+    } catch (e) {
+      toast.error('Erreur de traduction');
     } finally {
       setLoading(false);
+      setAiLoading('translation', false);
     }
   };
 
-  const toggleDirection = () => {
-    const newDirection = direction === 'mg-fr' ? 'fr-mg' : 'mg-fr';
-    setDirection(newDirection);
-    if (selectedText) {
-      setLoading(true);
-      translate(selectedText, newDirection)
-        .then((response) => {
-          if (response.status === 'success' && response.data) {
-            setResult(response.data);
-          } else {
-            setResult(mockTranslate(selectedText, newDirection));
-          }
-        })
-        .catch(() => {
-          setResult(mockTranslate(selectedText, newDirection));
-        })
-        .finally(() => setLoading(false));
-    }
-  };
 
-  const copyToClipboard = async () => {
-    if (result?.translated) {
-      await navigator.clipboard.writeText(result.translated);
-      setCopied(true);
-      toast.success('Copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    }
+  const copyToClipboard = async (text: string, field: string) => {
+    if (!text) return;
+
+    await navigator.clipboard.writeText(text);
+
+    setCopiedField(field);
+    toast.success('Texte copié dans le presse papier');
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={isTranslationOpen} onOpenChange={setTranslationOpen}>
       <PopoverTrigger asChild>
         {children || (
           <Button variant="ghost" size="sm" className="gap-1">
@@ -94,66 +73,65 @@ export function TranslationPopover({ children }: TranslationPopoverProps) {
           </Button>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-80" align="start">
+      <PopoverContent
+        className="w-80"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}  
+      >
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm">Dikanteny (Translation)</h4>
+            <h4 className="font-medium text-sm">Dikanteny (Traduction mot à mot)</h4>
             <Button
               variant="ghost"
               size="icon-sm"
-              onClick={() => setOpen(false)}
+              onClick={() => setTranslationOpen(false)}
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* Direction Toggle */}
-          <div className="flex items-center justify-center gap-2 py-1">
-            <span className={`text-sm ${direction === 'mg-fr' ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
-              Malagasy
-            </span>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={toggleDirection}
-              className="h-7 w-7"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-            </Button>
-            <span className={`text-sm ${direction === 'fr-mg' ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
-              Frantsay
-            </span>
-          </div>
-
           {loading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-12 w-full" />
+            <div className="flex items-center justify-center h-full w-full">
+              <Spinner />
             </div>
           ) : result ? (
             <div className="space-y-3">
-              <div className="p-3 bg-muted/50 rounded-md">
-                <p className="text-xs text-muted-foreground mb-1">
-                  {direction === 'mg-fr' ? 'Malagasy' : 'Frantsay'}:
-                </p>
-                <p className="text-sm">{result.original}</p>
+              <div className="text-sm text-muted-foreground flex flex-col gap-1">
+                <div className="flex items-center gap-1 text-primary">
+                  <Database className="h-4 w-4" />
+                  <span>Source</span>
+                </div>
+
+                <span className="font-medium text-black">
+                  {result?.source}
+                </span>
               </div>
-              
+
+              <div className="text-sm text-muted-foreground flex flex-col gap-1">
+                <div className="flex items-center gap-1 text-primary">
+                  <Search className="h-4 w-4 " />
+                  <span>Mot analysé</span>
+                </div>
+
+                <span className="font-medium text-black">
+                  {result?.input}
+                </span>
+              </div>
               <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-xs text-primary mb-1">
-                      {direction === 'mg-fr' ? 'Frantsay' : 'Malagasy'}:
+                      Français :
                     </p>
-                    <p className="text-sm font-medium">{result.translated}</p>
+                    <p className="text-sm font-medium">{result.fr}</p>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={copyToClipboard}
+                    onClick={() => copyToClipboard(result.fr, 'fr')}
                     className="shrink-0"
                   >
-                    {copied ? (
+                    {copiedField =='fr' ? (
                       <Check className="h-3 w-3 text-primary" />
                     ) : (
                       <Copy className="h-3 w-3" />
@@ -161,10 +139,58 @@ export function TranslationPopover({ children }: TranslationPopoverProps) {
                   </Button>
                 </div>
               </div>
+              
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-primary mb-1">
+                      Malagasy :
+                    </p>
+                    <p className="text-sm font-medium">{result.mg}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => copyToClipboard(result.mg, 'mg')}
+                    className="shrink-0"
+                  >
+                    {copiedField === 'mg' ? (
+                      <Check className="h-3 w-3 text-primary" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-primary mb-1">
+                      Anglais :
+                    </p>
+                    <p className="text-sm font-medium">{result.en}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => copyToClipboard(result.en, 'en')}
+                    className="shrink-0"
+                  >
+                    {copiedField === 'en' ? (
+                      <Check className="h-3 w-3 text-primary" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-2">
-              Select text to translate between Malagasy and French.
+              Selectionner un texte à traduire sur l'editeur, puis cliquer sur le bouton Ai, et choisissez "Translate(Dikan-teny)"
             </p>
           )}
         </div>
