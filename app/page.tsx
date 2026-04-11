@@ -2,7 +2,6 @@
 
 import { TiptapEditor } from '@/components/editor/tiptap-editor';
 import { ChatbotSheet } from '@/components/chatbot/chatbot-sheet';
-import { SpellCheckPopover } from '@/components/ai/spell-check-popover';
 import { LemmatizationPopover } from '@/components/ai/lemmatization-popover';
 import { TranslationPopover } from '@/components/ai/translation-popover';
 import { Button } from '@/components/ui/button';
@@ -200,7 +199,7 @@ export default function EditorPage() {
 
       {/* Hidden AI Feature Popovers (triggered via store) */}
       <div className="hidden">
-        <SpellCheckPopover />
+        {/*<SpellCheckPopover />*/}
         <LemmatizationPopover />
         <TranslationPopover />
       </div>

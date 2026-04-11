@@ -1,4 +1,4 @@
-'use client';
+{/*'use client';
 
 import { useState, useEffect } from 'react';
 import {
@@ -8,9 +8,9 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { checkSpelling, mockSpellCheck } from '@/services/spell-check';
+import { checkSpelling } from '@/services/spell-check';
 import { useEditorStore } from '@/hooks/use-editor-store';
-import type { SpellCheckSuggestion } from '@/types/api';
+import type { SpellCheckUIItem } from '@/types/api';
 import { SpellCheck, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,13 +19,23 @@ interface SpellCheckPopoverProps {
   children?: React.ReactNode;
 }
 
+function transformCorrections(data: any): SpellCheckUIItem[] {
+  return Object.entries(data.corrections).map(
+    ([word, suggestions]: any) => ({
+      original: word,
+      suggestions: suggestions.map(([w]: any) => w),
+    })
+  );
+}
+
 export function SpellCheckPopover({
   onReplace,
   children,
 }: SpellCheckPopoverProps) {
   const { selectedText, aiLoading, setAiLoading } = useEditorStore();
+
   const [open, setOpen] = useState(false);
-  const [corrections, setCorrections] = useState<SpellCheckSuggestion[]>([]);
+  const [corrections, setCorrections] = useState<SpellCheckUIItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -43,32 +53,33 @@ export function SpellCheckPopover({
     }
 
     setLoading(true);
+
     try {
       const response = await checkSpelling(selectedText);
-      
+
       if (response.status === 'success' && response.data) {
-        setCorrections(response.data.corrections);
-        if (response.data.corrections.length === 0) {
+        const transformed = transformCorrections(response.data);
+
+        setCorrections(transformed);
+
+        if (transformed.length === 0) {
           toast.success('No spelling errors found!');
         }
       } else {
-        // Fallback to mock
-        const mockResult = mockSpellCheck(selectedText);
-        setCorrections(mockResult.corrections);
-        if (mockResult.corrections.length === 0) {
-          toast.success('No spelling errors found!');
-        }
+        setCorrections([]);
+        toast.error('Spell check failed');
       }
     } catch (error) {
-      // Use mock on error
-      const mockResult = mockSpellCheck(selectedText);
-      setCorrections(mockResult.corrections);
+      console.error(error);
+      setCorrections([]);
+      toast.error('Error during spell check');
     } finally {
       setLoading(false);
     }
   };
 
   const handleReplace = (original: string, replacement: string) => {
+    console.log("ETOOOO ")
     onReplace?.(original, replacement);
     toast.success(`Replaced "${original}" with "${replacement}"`);
     setOpen(false);
@@ -84,15 +95,12 @@ export function SpellCheckPopover({
           </Button>
         )}
       </PopoverTrigger>
+
       <PopoverContent className="w-80" align="start">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm">Spell Check</h4>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setOpen(false)}
-            >
+            <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -112,11 +120,10 @@ export function SpellCheckPopover({
             <div className="space-y-3">
               {corrections.map((correction, index) => (
                 <div key={index} className="space-y-1.5">
-                  <p className="text-sm">
-                    <span className="text-destructive font-medium">
-                      {correction.original}
-                    </span>
+                  <p className="text-sm font-medium text-destructive">
+                    {correction.original}
                   </p>
+
                   <div className="flex flex-wrap gap-1">
                     {correction.suggestions.map((suggestion, i) => (
                       <Button
@@ -149,4 +156,4 @@ export function SpellCheckPopover({
       </PopoverContent>
     </Popover>
   );
-}
+}*/}

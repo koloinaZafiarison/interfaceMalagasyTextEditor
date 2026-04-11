@@ -16,9 +16,10 @@ import { EditorToolbar } from './editor-toolbar';
 import { EditorStatusBar } from './editor-status-bar';
 import { cn } from '@/lib/utils';
 import { getAutocompleteSuggestions } from '@/services/autocomplete';
-import { checkSpelling, mockSpellCheck } from '@/services/spell-check';
+import { checkSpelling } from '@/services/spell-check';
 import { checkSentiment } from '@/services/sentiment-check';
 import { toast } from 'sonner';
+import { SpellCheckApiResponse } from '@/types/api';
 
 interface TiptapEditorProps {
   className?: string;
@@ -40,6 +41,18 @@ const ghostTextPluginKey = new PluginKey('ghost-text-decoration');
 function sanitizeEditorHtml(html: string): string {
   // Prevent script nodes from being rendered inside editor content.
   return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+}
+
+
+function extractSpellSuggestions(
+  data: SpellCheckApiResponse
+): string[] {
+  if (!data?.corrections) return [];
+
+  return Object.values(data.corrections)
+    .flat()
+    .map(([word]: [string, number]) => word)
+    .filter(Boolean);
 }
 
 const GhostTextExtension = Extension.create({
@@ -78,6 +91,7 @@ const GhostTextExtension = Extension.create({
     ];
   },
 });
+
 
 export function TiptapEditor({ className }: TiptapEditorProps) {
   const autocompleteRequestIdRef = useRef(0);
@@ -280,22 +294,36 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
 
     const { from, to } = editor.state.selection;
     const selected = editor.state.doc.textBetween(from, to, ' ');
-    if (!selected.trim()) {
+
+    const cleanSelected = selected.trim();
+
+    // Aucun texte à corriger
+    if (!cleanSelected) {
       toast.error('Sélectionne un texte à corriger');
+      closeSuggestionPopup();
+      return;
+    }
+
+    //Verification longueur
+    if (cleanSelected.length < 2) {
+      toast.error('Texte trop court');
+      closeSuggestionPopup();
       return;
     }
 
     const showSuggestions = (suggestions: string[]) => {
-      if (suggestions.length === 0) {
+      if (!suggestions.length) {
         toast.success('Aucune erreur détectée');
         closeSuggestionPopup();
         return;
       }
+
       const coords = editor.view.coordsAtPos(from);
+
       setSuggestionPopup({
         open: true,
         type: 'spellcheck',
-        suggestions: suggestions.slice(0, 3),
+        suggestions: suggestions.slice(0, 5),
         x: coords.left,
         y: coords.bottom + 6,
         from,
@@ -303,21 +331,30 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
       });
     };
 
-    const instant = mockSpellCheck(selected);
-    showSuggestions(instant.corrections[0]?.suggestions ?? []);
-
     const requestId = ++spellCheckRequestIdRef.current;
-    void checkSpelling(selected)
+
+    void checkSpelling(cleanSelected)
       .then((response) => {
         if (requestId !== spellCheckRequestIdRef.current) return;
-        const result =
-          response.status === 'success' && response.data
-            ? response.data
-            : instant;
-        showSuggestions(result.corrections[0]?.suggestions ?? []);
+
+        if (response.status !== 'success' || !response.data) {
+          closeSuggestionPopup();
+          return;
+        }
+
+        const suggestions = extractSpellSuggestions(response.data);
+
+        // only open if real suggestions exist
+        if (!suggestions.length) {
+          closeSuggestionPopup();
+          toast.success('Aucune erreur détectée');
+          return;
+        }
+
+        showSuggestions(suggestions);
       })
       .catch(() => {
-        // Keep instant suggestions on API error.
+        closeSuggestionPopup();
       });
   }, [editor, closeSuggestionPopup]);
 
@@ -430,13 +467,21 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
           >
             {suggestionPopup.suggestions.map((suggestion) => (
               <button
-                key={suggestion}
+                key={`${suggestion}`}
                 type="button"
-                className="block w-full rounded-sm px-2 py-1 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+                className="group block w-full rounded-sm px-2 py-1 text-left text-xs hover:bg-accent hover:text-accent-foreground"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => applySuggestion(suggestion)}
               >
-                {suggestion}
+                <div className="flex justify-between">
+                  <span>{suggestion}</span>
+
+                  <span className="opacity-0 group-hover:opacity-100 text-[10px] text-white">
+                    {suggestionPopup.type === 'spellcheck'
+                      ? 'remplacer'
+                      : 'écrire'}
+                  </span>
+                </div>
               </button>
             ))}
           </div>

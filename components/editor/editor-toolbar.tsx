@@ -385,13 +385,13 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest, }: Edito
               AI Features
             </TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuContent align="start" className="w-86.5">
             <DropdownMenuItem
               disabled={!selectedText || aiLoading.spellcheck || !settings.spellCheckEnabled}
               onClick={() => onSpellCheckRequest?.()}
             >
               <SpellCheck className="mr-2 h-4 w-4" />
-              Spell Check
+              Spell Check (Correction orthographique)
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={!selectedText}
