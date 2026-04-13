@@ -31,6 +31,21 @@ export interface LemmatizationResponse {
   partOfSpeech?: string;
 }
 
+// Lemmatization for text (backend endpoint)
+export interface LemmatizationTextRequest {
+  texte: string;
+}
+
+export interface LemmaInfo {
+  racine: string;
+  methode: string;
+}
+
+export interface LemmatizationTextResponse {
+  texte: string;
+  lemmes: Record<string, LemmaInfo>;
+}
+
 // Autocomplete
 export interface AutocompleteRequest {
   text: string;

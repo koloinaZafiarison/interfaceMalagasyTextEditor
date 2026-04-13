@@ -8,9 +8,9 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { lemmatize, mockLemmatize } from '@/services/lemmatization';
+import { lemmatizeText} from '@/services/lemmatization';
 import { useEditorStore } from '@/hooks/use-editor-store';
-import type { LemmatizationResponse } from '@/types/api';
+import type { LemmatizationTextResponse } from '@/types/api';
 import { BookOpen, X, ArrowRight } from 'lucide-react';
 
 interface LemmatizationPopoverProps {
@@ -20,7 +20,7 @@ interface LemmatizationPopoverProps {
 export function LemmatizationPopover({ children }: LemmatizationPopoverProps) {
   const { selectedText, aiLoading, setAiLoading } = useEditorStore();
   const [open, setOpen] = useState(false);
-  const [result, setResult] = useState<LemmatizationResponse | null>(null);
+  const [result, setResult] = useState<LemmatizationTextResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -33,23 +33,27 @@ export function LemmatizationPopover({ children }: LemmatizationPopoverProps) {
 
   const handleLemmatize = async () => {
     if (!selectedText) return;
-
-    // Get the first word if multiple words selected
-    const word = selectedText.trim().split(/\s+/)[0];
-    
     setLoading(true);
     try {
-      const response = await lemmatize(word);
+      const response = await lemmatizeText(selectedText);
       
       if (response.status === 'success' && response.data) {
         setResult(response.data);
       } else {
-        // Fallback to mock
-        setResult(mockLemmatize(word));
+        const lemmes: Record<string, { racine: string; methode: string }> = {};
+
+        setResult({
+          texte: selectedText,
+          lemmes,
+        });
       }
     } catch (error) {
       // Use mock on error
-      setResult(mockLemmatize(word));
+      const lemmes: Record<string, { racine: string; methode: string }> = {};
+      setResult({
+        texte: selectedText,
+        lemmes,
+      });
     } finally {
       setLoading(false);
     }
@@ -76,7 +80,7 @@ export function LemmatizationPopover({ children }: LemmatizationPopoverProps) {
           </Button>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-72" align="start">
+      <PopoverContent className="w-72" align="start" onInteractOutside={(e) => e.preventDefault()}>
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm">Fandrasan-teny (Lemmatization)</h4>
@@ -96,22 +100,20 @@ export function LemmatizationPopover({ children }: LemmatizationPopoverProps) {
             </div>
           ) : result ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-lg">
-                <span className="text-muted-foreground">{result.original}</span>
-                <ArrowRight className="h-4 w-4 text-primary" />
-                <span className="font-semibold text-primary">{result.lemma}</span>
+              <div className="text-sm text-muted-foreground">
+                Lemmas for selected text:
               </div>
-              
-              {result.partOfSpeech && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-0.5 bg-secondary rounded-full text-secondary-foreground">
-                    {getPartOfSpeechLabel(result.partOfSpeech)}
-                  </span>
-                </div>
-              )}
+              <div className="max-h-40 overflow-y-auto space-y-2">
+                {Object.entries(result.lemmes).map(([word, lemma]) => (
+                  <div key={word} className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">{word}</span>
+                    <ArrowRight className="h-3 w-3 text-primary shrink-0" />
+                    <span className="font-medium text-primary">{lemma.racine}</span>
+                  </div>
+                ))}
+              </div>
 
               <div className="pt-2 border-t text-xs text-muted-foreground">
-                <p>The lemma is the base or dictionary form of a word.</p>
                 <p className="mt-1 italic">
                   Ny fandrasan-teny dia ny fototra na endrika fototra amin&apos;ny teny.
                 </p>

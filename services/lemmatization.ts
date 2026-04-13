@@ -3,6 +3,9 @@ import { apiPost } from '@/lib/api-client';
 import type {
   LemmatizationRequest,
   LemmatizationResponse,
+  LemmatizationTextRequest,
+  LemmatizationTextResponse,
+  LemmaInfo,
   ApiResponse,
 } from '@/types/api';
 
@@ -16,7 +19,6 @@ export async function lemmatize(
   const request: LemmatizationRequest = { word };
   const instant: ApiResponse<LemmatizationResponse> = {
     status: 'success',
-    data: mockLemmatize(word),
   };
 
   const response = await Promise.race([
@@ -37,51 +39,40 @@ export async function lemmatize(
  * Mock lemmatization for development/demo purposes
  * This simulates the API response when the backend is not available
  */
-export function mockLemmatize(word: string): LemmatizationResponse {
-  // Common Malagasy word -> lemma mappings (for demo)
-  const lemmaMap: Record<string, { lemma: string; partOfSpeech: string }> = {
-    // Verbs with prefixes
-    'manoratra': { lemma: 'soratra', partOfSpeech: 'verbe' },
-    'mianatra': { lemma: 'anatra', partOfSpeech: 'verbe' },
-    'miasa': { lemma: 'asa', partOfSpeech: 'verbe' },
-    'miteny': { lemma: 'teny', partOfSpeech: 'verbe' },
-    'mahita': { lemma: 'hita', partOfSpeech: 'verbe' },
-    'mandray': { lemma: 'ray', partOfSpeech: 'verbe' },
-    'manana': { lemma: 'ana', partOfSpeech: 'verbe' },
-    'mamaky': { lemma: 'vaky', partOfSpeech: 'verbe' },
-    'mandeha': { lemma: 'deha', partOfSpeech: 'verbe' },
-    'miresaka': { lemma: 'resaka', partOfSpeech: 'verbe' },
-    
-    // Nouns
-    'fitiavana': { lemma: 'tia', partOfSpeech: 'nom' },
-    'fahendrena': { lemma: 'hendry', partOfSpeech: 'nom' },
-    'fahalalana': { lemma: 'hala', partOfSpeech: 'nom' },
-    'fanantenana': { lemma: 'antena', partOfSpeech: 'nom' },
-    'fiainana': { lemma: 'aina', partOfSpeech: 'nom' },
-    
-    // Adjectives
-    'tsara': { lemma: 'tsara', partOfSpeech: 'adj' },
-    'ratsy': { lemma: 'ratsy', partOfSpeech: 'adj' },
-    'kely': { lemma: 'kely', partOfSpeech: 'adj' },
-    'lehibe': { lemma: 'lehibe', partOfSpeech: 'adj' },
-    'vaovao': { lemma: 'vaovao', partOfSpeech: 'adj' },
-  };
 
-  const cleanWord = word.toLowerCase().trim();
-  const mapping = lemmaMap[cleanWord];
 
-  if (mapping) {
-    return {
-      original: word,
-      lemma: mapping.lemma,
-      partOfSpeech: mapping.partOfSpeech,
-    };
+/**
+ * Get lemmas for the entire text
+ * Uses the backend endpoint that tokenizes and lemmatizes the text
+ */
+export async function lemmatizeText(
+  text: string
+): Promise<ApiResponse<LemmatizationTextResponse>> {
+  const request: LemmatizationTextRequest = { texte: text };
+  
+  try {
+    const response = await apiPost<LemmatizationTextRequest, LemmatizationTextResponse>(
+      API_ENDPOINTS.lemmatize,
+      request
+    );
+    
+    if (response.status === 'success' && response.data) {
+      return response;
+    }
+  } catch (error) {
+    console.error('Lemmatization API error:', error);
   }
-
-  // Default: return the word itself as the lemma
+  
+  // Fallback to mock for each word
+  const tokens = text.split(/\s+/).filter(word => word.trim());
+  const lemmes: Record<string, LemmaInfo> = {};
+  
+  
   return {
-    original: word,
-    lemma: cleanWord,
-    partOfSpeech: 'unknown',
+    status: 'success',
+    data: {
+      texte: text,
+      lemmes,
+    },
   };
 }
