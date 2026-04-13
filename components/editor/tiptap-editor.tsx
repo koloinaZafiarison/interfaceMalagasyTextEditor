@@ -507,7 +507,7 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
                 >
                   
                   <SpellCheck className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 text-left">Corriger</span>
+                  <span className="flex-1 text-left">Corriger (Diso tsipelina)</span>
                 </DropdownMenuItem>
 
                 {/* Lemmatization */}
@@ -516,7 +516,7 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
                   className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <BookOpen className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 text-left">Lemmatize</span>
+                  <span className="flex-1 text-left">Lemmatize (Fandrasan-teny)</span>
                 </DropdownMenuItem>
 
                 {/* Translation */}
@@ -525,7 +525,7 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
                   className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <Languages className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 text-left">Traduire</span>
+                  <span className="flex-1 text-left">Traduire (Dikan-teny)</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -545,7 +545,7 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
                   className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <Volume2 className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 text-left">Lire</span>
+                  <span className="flex-1 text-left">Lire (Mamaky)</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
