@@ -7,7 +7,7 @@ export const API_ENDPOINTS = {
   lemmatize: `${API_BASE}/api/lemmatisation/`,
   autocomplete: `${API_BASE}/api/autocomplete/`,
   sentimentCheck: `${API_BASE}/api/predict-sentiment/`,
-  phonotactic: `${API_BASE}/api/phonotactic-check/`,
+  phonotactic: `${API_BASE}/api/phonotactique/`,
   tts: `${API_BASE}/api/tts/`,
   chatbot: `${API_BASE}/api/chatbot/`,
   translate: 'http://127.0.0.1:8000/translator/translate/',

@@ -83,12 +83,9 @@ export type TranslationResponse = {
 
 // Phonotactic Check
 export interface PhonotacticError {
-  pattern: string;
-  position: {
-    start: number;
-    end: number;
-  };
-  message: string;
+  mot: string;
+  regle: string;
+  description: string;
 }
 
 export interface PhonotacticCheckRequest {
@@ -96,6 +93,7 @@ export interface PhonotacticCheckRequest {
 }
 
 export interface PhonotacticCheckResponse {
+  texte: string;
   errors: PhonotacticError[];
   isValid: boolean;
 }
