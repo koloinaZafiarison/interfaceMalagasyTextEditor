@@ -43,8 +43,6 @@ import {
 } from 'lucide-react';
 import { useEditorStore } from '@/hooks/use-editor-store';
 import { cn } from '@/lib/utils';
-//import { translate, mockTranslate } from '@/services/translation';
-import { getAutocompleteSuggestions } from '@/services/autocomplete';
 import { textToSpeech, speakWithWebSpeech } from '@/services/tts';
 import { toast } from 'sonner';
 
@@ -96,7 +94,7 @@ function ToolbarButton({
 export function EditorToolbar({ editor, className, onSpellCheckRequest, }: EditorToolbarProps) {
   const { setChatOpen, selectedText, setAiLoading, aiLoading, settings, setTranslationOpen } = useEditorStore();
 
-  const applyTranslation = async () => {
+  /*const applyTranslation = async () => {
     if (!selectedText) {
       toast.error("Sélectionne un texte");
       return;
@@ -144,7 +142,7 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest, }: Edito
     } finally {
       setAiLoading('autocomplete', false);
     }
-  };
+  };*/
 
   const readAloud = async () => {
     const text = selectedText?.trim() ? selectedText : editor.getText();
@@ -366,7 +364,7 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest, }: Edito
 
       {/* AI Features */}
       <div className="flex items-center gap-0.5">
-        <DropdownMenu>
+        {/*<DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
@@ -429,7 +427,29 @@ export function EditorToolbar({ editor, className, onSpellCheckRequest, }: Edito
               {aiLoading.tts ? 'Lecture en cours...' : 'Read Aloud (Lire)'}
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu> */}
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={aiLoading.tts}
+              onClick={readAloud}
+              className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+            >
+              {aiLoading.tts ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+
+          <TooltipContent side="bottom" sideOffset={5}>
+            {aiLoading.tts ? 'Lecture en cours...' : 'Read Aloud (Lire)'}
+          </TooltipContent>
+        </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>

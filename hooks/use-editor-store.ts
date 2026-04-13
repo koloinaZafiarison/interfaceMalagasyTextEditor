@@ -10,6 +10,8 @@ import type {
 } from '@/types/editor';
 import type { ChatMessage } from '@/types/api';
 
+type SelectionRange = { from: number; to: number } | null;
+
 interface EditorStore {
   // Editor content state
   content: string;
@@ -64,6 +66,9 @@ interface EditorStore {
 
   isTranslationOpen: boolean;
   setTranslationOpen: (open: boolean) => void;
+
+  //Spell check 
+  replaceSelection: (replacement: string) => void;
 }
 
 const defaultSettings: EditorSettings = {
@@ -128,8 +133,8 @@ export const useEditorStore = create<EditorStore>()(
       
       // Selection
       selectedText: '',
-      selectionRange: null,
-      setSelection: (text, range) => 
+      selectionRange: null as SelectionRange,
+      setSelection: (text: string, range: SelectionRange) =>
         set({ selectedText: text, selectionRange: range }),
       
       // AI loading
@@ -140,6 +145,14 @@ export const useEditorStore = create<EditorStore>()(
       // Translation popover
       isTranslationOpen: false,
       setTranslationOpen: (open) => set({ isTranslationOpen: open }),
+
+      replaceSelection: (replacement: string) => {
+        set((state) => {
+          // on ne fait rien ici (logique côté editor)
+          return state;
+        });
+      }
+
     }),
     {
       name: 'malagasy-editor-storage',
