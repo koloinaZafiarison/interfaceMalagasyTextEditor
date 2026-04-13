@@ -16,14 +16,13 @@ import { EditorToolbar } from './editor-toolbar';
 import { EditorStatusBar } from './editor-status-bar';
 import { cn } from '@/lib/utils';
 import { getAutocompleteSuggestions } from '@/services/autocomplete';
-import { checkSpelling } from '@/services/spell-check';
 import { checkSentiment } from '@/services/sentiment-check';
 import { toast } from 'sonner';
-import { SpellCheckApiResponse } from '@/types/api';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu';
 import { BookOpen, Languages, Sparkles, SpellCheck, Volume2 } from 'lucide-react';
 import { useAiEditor } from '@/hooks/use-ai-editor';
 import { SpellCheckPopover } from '../ai/spell-check-popover';
+import { PhonotacticPopover } from '../ai/phonotactic-popover';
 
 interface TiptapEditorProps {
   className?: string;
@@ -107,6 +106,11 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
     text: '',
     from: 0,
     to: 0,
+  });
+
+  const [phonotactic, setPhonotactic] = useState({
+    open: false,
+    text: '',
   });
 
   const { 
@@ -365,6 +369,13 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
     [editor, suggestionPopup, closeSuggestionPopup]
   );
 
+  const runPhonotacticCheck = useCallback(() => {
+    setPhonotactic({
+      open: true,
+      text: aiMenu.text,
+    });
+  }, [aiMenu.text]);
+
   // Auto-save functionality
   const autoSave = useDebouncedCallback(() => {
     if (settings.autoSaveEnabled) {
@@ -510,6 +521,18 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
                   <span className="flex-1 text-left">Corriger (Diso tsipelina)</span>
                 </DropdownMenuItem>
 
+
+                {/* PHonotactique */}
+                <DropdownMenuItem
+                  onClick={runPhonotacticCheck}
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer"
+                >
+                  <Languages className="h-4 w-4 shrink-0" />
+                  <span className="flex-1 text-left">
+                    Phonotactique (Fitsipika)
+                  </span>
+                </DropdownMenuItem>
+
                 {/* Lemmatization */}
                 <DropdownMenuItem
                   onClick={lemmatize}
@@ -554,8 +577,15 @@ export function TiptapEditor({ className }: TiptapEditorProps) {
       </div>
       <div className="hidden">
         <SpellCheckPopover onReplace={(o, r) => replaceSelection(r)} />
+        
       </div>
-      
+      <PhonotacticPopover
+          text={phonotactic.text}
+          open={phonotactic.open}
+          onClose={() =>
+            setPhonotactic({ open: false, text: '' })
+          }
+        />
       <EditorStatusBar editor={editor} />
     </div>
   );
