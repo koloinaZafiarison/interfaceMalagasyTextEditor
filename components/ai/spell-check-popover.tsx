@@ -1,4 +1,4 @@
-{/*'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import {
@@ -7,12 +7,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { checkSpelling } from '@/services/spell-check';
 import { useEditorStore } from '@/hooks/use-editor-store';
 import type { SpellCheckUIItem } from '@/types/api';
-import { SpellCheck, X, Check } from 'lucide-react';
+import { SpellCheck, X, Check, ArrowRightLeft, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { Spinner } from '../ui/spinner';
 
 interface SpellCheckPopoverProps {
   onReplace?: (original: string, replacement: string) => void;
@@ -37,6 +37,7 @@ export function SpellCheckPopover({
   const [open, setOpen] = useState(false);
   const [corrections, setCorrections] = useState<SpellCheckUIItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const { replaceSelection } = useEditorStore();
 
   useEffect(() => {
     if (aiLoading.spellcheck && selectedText) {
@@ -79,9 +80,7 @@ export function SpellCheckPopover({
   };
 
   const handleReplace = (original: string, replacement: string) => {
-    console.log("ETOOOO ")
     onReplace?.(original, replacement);
-    toast.success(`Replaced "${original}" with "${replacement}"`);
     setOpen(false);
   };
 
@@ -91,37 +90,53 @@ export function SpellCheckPopover({
         {children || (
           <Button variant="ghost" size="sm" className="gap-1">
             <SpellCheck className="h-4 w-4" />
-            Spell Check
+            Spell Check (Correction orthographique)
           </Button>
         )}
       </PopoverTrigger>
 
-      <PopoverContent className="w-80" align="start">
+      <PopoverContent
+          className="w-80"
+          align="start"
+          onInteractOutside={(e) => {
+            e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            e.preventDefault();
+          }}
+        >
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm">Spell Check</h4>
+            <h4 className="font-medium text-sm">Spell Check (Correction orthographique)</h4>
             <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
+          
+          {selectedText && (
+            <div className="pt-2 border-t">
+              <p className="text-xs text-destructive my-2">
+                Mot erroné : &ldquo;{selectedText.slice(0, 50)}
+                {selectedText.length > 50 ? '...' : ''}&rdquo;
+              </p>
+            </div>
+          )}
 
           {loading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-8 w-full" />
+            <div className="flex items-center justify-center h-full w-full">
+              <Spinner />
             </div>
           ) : corrections.length === 0 ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
               <Check className="h-4 w-4 text-primary" />
-              <span>No spelling errors found</span>
+              <span>Aucun erreur detecté</span>
             </div>
           ) : (
             <div className="space-y-3">
               {corrections.map((correction, index) => (
                 <div key={index} className="space-y-1.5">
-                  <p className="text-sm font-medium text-destructive">
-                    {correction.original}
+                  <p className="text-sm font-medium mb-4">
+                    Suggestions de correction disponibles. Sélectionnez celle que vous souhaitez appliquer.
                   </p>
 
                   <div className="flex flex-wrap gap-1">
@@ -130,12 +145,14 @@ export function SpellCheckPopover({
                         key={i}
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-7 text-xs gap-1"
+                        title={`Remplacer "${correction.original}" par "${suggestion}"`}
                         onClick={() =>
                           handleReplace(correction.original, suggestion)
                         }
                       >
                         {suggestion}
+                        <RefreshCcw />
                       </Button>
                     ))}
                   </div>
@@ -144,16 +161,9 @@ export function SpellCheckPopover({
             </div>
           )}
 
-          {selectedText && (
-            <div className="pt-2 border-t">
-              <p className="text-xs text-muted-foreground">
-                Checking: &ldquo;{selectedText.slice(0, 50)}
-                {selectedText.length > 50 ? '...' : ''}&rdquo;
-              </p>
-            </div>
-          )}
+  
         </div>
       </PopoverContent>
     </Popover>
   );
-}*/}
+}

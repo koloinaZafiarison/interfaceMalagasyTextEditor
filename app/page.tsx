@@ -6,7 +6,7 @@ import { LemmatizationPopover } from '@/components/ai/lemmatization-popover';
 import { TranslationPopover } from '@/components/ai/translation-popover';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/hooks/use-editor-store';
-import { FileText, Settings, Download, Upload } from 'lucide-react';
+import { FileText, Settings, Download, Upload, Copy, RefreshCcw, HelpCircle, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,11 +22,13 @@ import {
 import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export default function EditorPage() {
   const { content, setContent, markSaved, settings, updateSettings } = useEditorStore();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(true);
   const isDarkTheme = resolvedTheme === 'dark';
 
   useEffect(() => {
@@ -186,20 +188,77 @@ export default function EditorPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setHelpOpen((prev) => !prev)}
+                >
+                  {helpOpen ? <X /> : <HelpCircle />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {helpOpen ? "Fermer l'aide" : "Ouvrir l'aide"}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </header>
 
       {/* Main Editor */}
       <main className="container mx-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <TiptapEditor />
+        <div className="max-w-6xl mx-auto flex gap-4">
+
+          {/* EDITOR */}
+          <div className="flex-1">
+            <TiptapEditor />
+          </div>
+
+          {helpOpen && (
+            <aside
+              className={cn(
+                "hidden xl:block w-72 shrink-0 border rounded-lg p-4 bg-muted/30 transition-all duration-300",
+                helpOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
+              )}
+            >
+              <h2 className="font-semibold mb-2">Aide rapide</h2>
+
+              <p className="text-sm text-muted-foreground mb-3">
+                Sélectionne un texte pour accéder aux actions IA.
+              </p>
+
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary"><Copy className="h-4 w-4" /></span>
+                  <div>
+                    <p className="font-medium text-foreground">Copie de texte</p>
+                    <p className="text-xs text-muted-foreground">
+                      Copier le texte sélectionné ou traduit.
+                    </p>
+                  </div>
+                </li>
+
+                <li className="flex items-start gap-2">
+                  <span className="text-primary"><RefreshCcw className="h-4 w-4" /></span>
+                  <div>
+                    <p className="font-medium text-foreground">Remplacement intelligent</p>
+                    <p className="text-xs text-muted-foreground">
+                      Remplacer le texte sélectionné par une suggestion IA.
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </aside>
+          )}
+
         </div>
       </main>
 
       {/* Hidden AI Feature Popovers (triggered via store) */}
       <div className="hidden">
-        {/*<SpellCheckPopover />*/}
+        
         <LemmatizationPopover />
         <TranslationPopover />
       </div>
