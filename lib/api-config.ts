@@ -10,7 +10,7 @@ export const API_ENDPOINTS = {
   phonotactic: `${API_BASE}/api/phonotactique/`,
   tts: `${API_BASE}/api/tts/`,
   chatbot: `${API_BASE}/api/chatbot/`,
-  translate: 'http://127.0.0.1:8000/translator/translate/',
+  translate: `${API_BASE}/translator/translate/`,
   
 } as const;
 
